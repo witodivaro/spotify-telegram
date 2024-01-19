@@ -13,6 +13,7 @@ const {
   MONGO_USER,
   MONGO_PASS,
   MONGO_DB_NAME,
+  SIMULTANIOUS_TRACK_DOWNLOADS,
 } = process.env;
 
 if (!BOT_TOKEN) {
@@ -55,6 +56,10 @@ if (!MONGO_URL) {
   throw new Error('MONGO_URL is not defined');
 }
 
+if (!SIMULTANIOUS_TRACK_DOWNLOADS) {
+  throw new Error('SIMULTANIOUS_TRACK_DOWNLOADS is not defined');
+}
+
 if (!MONGO_USER) {
   throw new Error('MONGO_USER is not defined');
 }
@@ -71,4 +76,5 @@ export const config = {
   MONGO_USER,
   MONGO_PASS,
   MONGO_DB_NAME,
+  SIMULTANIOUS_TRACK_DOWNLOADS,
 };

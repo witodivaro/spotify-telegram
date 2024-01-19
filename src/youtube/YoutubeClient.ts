@@ -6,7 +6,7 @@ import { THRESHOLD_DURATION_DIFFERENCE_IN_MS } from './consts';
 import { createYoutubeVideoUrl } from './utils';
 
 class YoutubeClient {
-  private downloader = new Downloader({ outputDir: './tmp' });
+  private downloader = new Downloader();
 
   async searchVideo(query: string, durationInMs: number): Promise<Video | null> {
     let { items } = await YoutubeSearchAPI.GetListByKeyword(

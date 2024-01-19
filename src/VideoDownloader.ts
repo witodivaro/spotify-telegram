@@ -1,21 +1,10 @@
 import ytdl from 'ytdl-core';
-import path from 'path';
 import NodeID3, { Tags } from 'node-id3';
 import type { videoInfo as VideoInfo } from 'ytdl-core';
 import { FormatConverter } from './FormatConverter';
-import { v1 as uuid } from 'uuid';
-
-export interface DownloaderOptions {
-  outputDir: string;
-}
+import { tmpNameSync } from 'tmp';
 
 export class Downloader {
-  outputDir: string;
-
-  constructor({ outputDir }: DownloaderOptions) {
-    this.outputDir = outputDir;
-  }
-
   async downloadSong(url: string, songTags: Tags): Promise<string> {
     const videoInfo = await ytdl.getInfo(url).catch((error) => {
       console.log(`Failed to fetch info for video with URL: ${url}`);
@@ -53,7 +42,6 @@ export class Downloader {
 
   /** Returns the absolute path to the audio file to be downloaded */
   private getOutputFile(): string {
-    const baseFileName = uuid();
-    return path.join(this.outputDir, baseFileName + '.mp3');
+    return tmpNameSync({ postfix: '.mp3' });
   }
 }

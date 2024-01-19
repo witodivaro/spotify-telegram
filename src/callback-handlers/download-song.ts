@@ -1,8 +1,33 @@
 import { Filter } from 'grammy';
 import { MyContext } from '../conversations/types';
-import SpotifyClient from '../spotify/SpotifyClient';
 import { Worker } from 'worker_threads';
-import { Reply } from '../workers/download-song';
+import fastq from 'fastq';
+import { WorkerData } from '../workers/download-song';
+import { config } from '../config';
+
+export const createWorker = (workerData: WorkerData) => {
+  return new Worker('./build/src/workers/download-song.js', {
+    workerData,
+  });
+};
+
+const runWorker = async (workerData: WorkerData) => {
+  const worker = createWorker(workerData);
+
+  return new Promise((resolve, reject) => {
+    worker.on('exit', (err) => {
+      if (!err) return resolve(null);
+
+      reject(err);
+    });
+  });
+};
+
+const queue = fastq.promise(runWorker, Number(config.SIMULTANIOUS_TRACK_DOWNLOADS));
+
+export const queueWorker = async (workerData: WorkerData) => {
+  queue.push(workerData);
+};
 
 export async function onDownloadSong(ctx: Filter<MyContext, 'callback_query:data'>) {
   if (!ctx.callbackQuery.message?.chat.id || !ctx.callbackQuery.message?.message_id) return;
@@ -11,45 +36,16 @@ export async function onDownloadSong(ctx: Filter<MyContext, 'callback_query:data
   const messageId = ctx.callbackQuery.message.message_id;
 
   try {
-    await SpotifyClient.authorize();
-    const track = await SpotifyClient.getTrack(ctx.callbackQuery.data);
-
-    if (!track) {
-      await ctx.answerCallbackQuery();
-      return await ctx.api.editMessageText(chatId, messageId, 'This song is not available any longer');
-    }
-
-    const worker = new Worker('./src/workers/download-song.ts', {
-      workerData: {
-        track,
-      },
-    });
-
-    worker.on('message', async (data: Reply) => {
-      console.log('Worker shared some data');
-      console.log({ data });
-
-      if (data.type === 'audio') {
-        const trackArtistNames = track.artists.map((artist) => artist.name).join(', ');
-
-        return await ctx.replyWithAudio(data.path, {
-          caption: '@' + ctx.session.botInfo.username,
-          thumbnail: data.thumbnail,
-          title: track.name,
-          performer: trackArtistNames,
-        });
-      }
-
-      if (data.type === 'edit') {
-        return await ctx.api.editMessageText(chatId, messageId, data.text);
-      }
-
-      if (data.type === 'delete') {
-        return await ctx.api.deleteMessage(chatId, messageId);
-      }
-    });
-
     await ctx.answerCallbackQuery();
+
+    await ctx.api.editMessageText(chatId, messageId, `🕺 Downloading ${ctx.callbackQuery.message.text}..`);
+
+    queueWorker({
+      trackId: ctx.callbackQuery.data,
+      chatId,
+      messageId,
+      botUsername: ctx.session.botInfo.username,
+    });
   } catch (error: any) {
     if (error.message) {
       await ctx.api.editMessageText(chatId, messageId, `Download failed: ${error.message || 'Unknown error'}`);

@@ -1,50 +1,34 @@
 import { InputFile } from 'grammy';
-import fsPromises from 'fs/promises';
 import { parentPort, workerData } from 'worker_threads';
-import { SpotifyTrack } from '../spotify/types';
 import { temporarilyFetchImage } from '../utils/images';
 import YoutubeClient from '../youtube/YoutubeClient';
+import { bot } from '../telegram/bot';
+import SpotifyClient from '../spotify/SpotifyClient';
 
-// const { InputFile } = require('grammy');
-// const fsPromises = require('fs/promises');
-// const { parentPort, workerData } = require('worker_threads');
-// const { SpotifyTrack } = require('../spotify/types');
-// const { temporarilyFetchImage } = require('../utils/images');
-// const YoutubeClient = require('../youtube/YoutubeClient');
-
-interface WorkerData {
-  track: SpotifyTrack;
+export interface WorkerData {
+  chatId: number;
+  messageId: number;
+  botUsername: string;
+  trackId: string;
 }
 
-interface EditTemporaryMessageReply {
-  type: 'edit';
-  text: string;
+export enum Reply {
+  'TRACK_NOT_FOUND',
 }
-
-interface DeleteTemporaryMessageReply {
-  type: 'delete';
-}
-
-interface ReplyWithAudioReply {
-  type: 'audio';
-  path: InputFile;
-  thumbnail: InputFile;
-}
-
-export type Reply = EditTemporaryMessageReply | DeleteTemporaryMessageReply | ReplyWithAudioReply;
 
 const run = async () => {
-  const { track } = workerData as WorkerData;
+  const { trackId, chatId, messageId, botUsername } = workerData as WorkerData;
+
+  await SpotifyClient.authorize();
+  const track = await SpotifyClient.getTrack(trackId);
+
+  if (!track) {
+    parentPort?.postMessage(Reply.TRACK_NOT_FOUND);
+    return await bot.api.editMessageText(chatId, messageId, 'This song is not available any longer');
+  }
 
   const trackArtistNames = track.artists.map((artist) => artist.name).join(', ');
   const searchQuery = [trackArtistNames, track.name].join(' – ');
-
-  console.log('Here I am');
-  console.log({ track });
-
-  const sendReply = async (replyMessage: Reply) => {
-    parentPort?.postMessage(replyMessage);
-  };
 
   const musicVideo = await YoutubeClient.searchVideo(searchQuery, track.duration_ms);
 
@@ -56,34 +40,21 @@ const run = async () => {
     });
 
     if (musicPath) {
-      const { path: imagePath, unlink: unlinkImage } = await temporarilyFetchImage(
-        track.album.images[2].url,
-        musicPath
-      );
+      const { path: imagePath } = await temporarilyFetchImage(track.album.images[2].url);
 
-      sendReply({
-        type: 'audio',
-        path: new InputFile(musicPath),
+      await bot.api.sendAudio(chatId, new InputFile(musicPath), {
+        caption: '@' + botUsername,
         thumbnail: new InputFile(imagePath),
+        title: track.name,
+        performer: trackArtistNames,
       });
 
-      sendReply({
-        type: 'delete',
-      });
-
-      await fsPromises.unlink(musicPath);
-      await unlinkImage();
+      await bot.api.deleteMessage(chatId, messageId);
     } else {
-      sendReply({
-        type: 'edit',
-        text: `${searchQuery} is not available`,
-      });
+      await bot.api.editMessageText(chatId, messageId, `☠️ ${searchQuery} is not available`);
     }
   } else {
-    sendReply({
-      type: 'edit',
-      text: `${searchQuery} is not available`,
-    });
+    await bot.api.editMessageText(chatId, messageId, `☠️ ${searchQuery} is not available`);
   }
 };
 

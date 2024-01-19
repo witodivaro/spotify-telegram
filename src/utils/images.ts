@@ -1,12 +1,13 @@
 import axios from 'axios';
 import fsPromises, { unlink } from 'fs/promises';
-import path from 'path';
+import { tmpNameSync } from 'tmp';
 
-export const temporarilyFetchImage = async (url: string, fileName: string) => {
+export const temporarilyFetchImage = async (url: string) => {
   const { data: image } = await axios.get<ArrayBuffer>(url, {
     responseType: 'arraybuffer',
   });
-  const imagePath = path.join(__dirname, '..', '..', `${fileName}.jpeg`);
+
+  const imagePath = tmpNameSync();
 
   await fsPromises.writeFile(imagePath, Buffer.from(image));
 

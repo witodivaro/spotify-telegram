@@ -3,9 +3,8 @@ import { ONE_HOUR_IN_MS } from '../consts';
 import SpotifyClient from '../spotify/SpotifyClient';
 import { MyContext, MyConversation } from './types';
 import { convertMsToSimplifiedText, isSpotifyPlaylistUrl } from './utils';
-import { SimplifiedTrack } from '../callback-handlers/types';
-import mongo from '../repositories/db';
 import { temporarilyFetchImage } from '../utils/images';
+import { queueWorker } from '../callback-handlers/download-song';
 
 export async function fetchPlaylist(conversation: MyConversation, ctx: MyContext) {
   try {
@@ -34,7 +33,7 @@ export async function fetchPlaylist(conversation: MyConversation, ctx: MyContext
 
     const tracksShorterThanHour = tracks.filter((track) => track.track.duration_ms < ONE_HOUR_IN_MS);
 
-    const { path: imagePath, unlink } = await temporarilyFetchImage(playlist.images[0].url, playlist.id);
+    const { path: imagePath, unlink } = await temporarilyFetchImage(playlist.images[0].url);
 
     await ctx.replyWithPhoto(new InputFile(imagePath), {
       caption: `<b>${playlist.name}</b> by ${playlist.owner.display_name}\n\n${playlist.description}`,
@@ -56,7 +55,7 @@ export async function fetchPlaylist(conversation: MyConversation, ctx: MyContext
     if (proceedMessage.message.text !== 'Yes') {
       await ctx.reply('Ok, I will not download this playlist. To download another playlist, type /download.');
       return;
-    };
+    }
 
     for (const track of tracksShorterThanHour) {
       const trackArtistNames = track.track.artists.map((artist) => artist.name).join(', ');
@@ -65,8 +64,6 @@ export async function fetchPlaylist(conversation: MyConversation, ctx: MyContext
       await ctx.reply(`🎧 ${searchQuery}, ${convertMsToSimplifiedText(track.track.duration_ms)}`, {
         reply_markup: InlineKeyboard.from([[InlineKeyboard.text('⬇️ Download 💽', track.track.id)]]),
       });
-
-      await new Promise((resolve) => setTimeout(resolve, 200));
     }
 
     await ctx.reply(`Done! Now just click 'Download' to download a song.`);

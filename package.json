@@ -5,18 +5,24 @@
   "license": "MIT",
   "scripts": {
     "dev": "nodemon --exec ts-node index.ts",
-    "compile-workers": "ts-node src/workers/*"
+    "build": "tsc --project tsconfig.json",
+    "start": "node build/index.js",
+    "benchmark": "node --prof build/index.js"
   },
   "dependencies": {
+    "@grammyjs/auto-retry": "^1.1.1",
     "@grammyjs/conversations": "^1.2.0",
+    "@grammyjs/runner": "^2.0.3",
     "@types/node": "^20.11.5",
     "axios": "^1.6.5",
     "dotenv": "^16.3.1",
+    "fastq": "^1.16.0",
     "ffmpeg-static": "^5.2.0",
     "grammy": "^1.20.3",
     "mongodb": "^6.3.0",
     "node-id3": "^0.2.6",
     "nodemon": "^3.0.3",
+    "tmp": "^0.2.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3",
     "uuid": "^9.0.1",
@@ -24,6 +30,8 @@
     "ytdl-core": "^4.11.5"
   },
   "devDependencies": {
-    "@types/uuid": "^9.0.7"
+    "@types/tmp": "^0.2.6",
+    "@types/uuid": "^9.0.7",
+    "tsc": "^2.0.4"
   }
 }

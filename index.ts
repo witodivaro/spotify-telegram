@@ -1,3 +1,4 @@
+import { run } from '@grammyjs/runner';
 import './src/telegram/bot';
 import { bot } from './src/telegram/bot';
 
@@ -14,10 +15,10 @@ import { bot } from './src/telegram/bot';
  * 9. Fetch track information from spotify API based on the button data 
  */
 
-const run = async () => {
-  bot.start();
+const start = async () => {
+  run(bot);
 
   console.log('Bot is up and running!');
 };
 
-run();
+start();
