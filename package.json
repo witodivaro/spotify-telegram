@@ -1,0 +1,29 @@
+{
+  "name": "spotify-tg-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "dev": "nodemon --exec ts-node index.ts",
+    "compile-workers": "ts-node src/workers/*"
+  },
+  "dependencies": {
+    "@grammyjs/conversations": "^1.2.0",
+    "@types/node": "^20.11.5",
+    "axios": "^1.6.5",
+    "dotenv": "^16.3.1",
+    "ffmpeg-static": "^5.2.0",
+    "grammy": "^1.20.3",
+    "mongodb": "^6.3.0",
+    "node-id3": "^0.2.6",
+    "nodemon": "^3.0.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "uuid": "^9.0.1",
+    "youtube-search-api": "^1.2.1",
+    "ytdl-core": "^4.11.5"
+  },
+  "devDependencies": {
+    "@types/uuid": "^9.0.7"
+  }
+}
